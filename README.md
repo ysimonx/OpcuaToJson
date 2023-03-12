@@ -1,5 +1,17 @@
 # OpcuaToJson
 
+## Installation 
+
+```
+sudo apt install python3-venv
+python3 -m venv ./env
+source ./env/bin/activate
+pip install opcua, jsonpath_ng, cryptography
+
+```
+
+## Run
+
 - Convert an OPCUA folder of nodes to a JSON file
 - Subscribe to each variable and update JSON file
 
