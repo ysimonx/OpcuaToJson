@@ -1,5 +1,9 @@
 # OpcuaToJson
 
+The main goal of this repo is to build a python script that converts any OPCUA data to JSON.
+
+In addition, each variables nodes are subscribed and the JSON data are updated when the OPCUA node values change
+
 ## Installation 
 
 ```
