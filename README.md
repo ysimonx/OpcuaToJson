@@ -24,6 +24,10 @@ python OpcuaToJson.py -u opc.tcp://MacBook-Air-M1.local:53530/OPCUA/SimulationSe
 ```
 
 ## Exemple with Prosys Simulation Server
+
+cf : www.prosysopc.com
+these variables changes each second
+
 <img width="291" alt="Capture d’écran 2023-03-12 à 21 01 16" src="https://user-images.githubusercontent.com/1449867/224570165-ed06f555-7e4f-4a14-a90f-7aeefabf88e1.png">
 
 
