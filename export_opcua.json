@@ -1,0 +1,14 @@
+{
+  "Root": {
+    "Objects": {
+      "Simulation": {
+        "Counter": 28.0,
+        "Random": 1.840176,
+        "Sawtooth": 0.4,
+        "Sinusoid": 1.48629,
+        "Square": -2.0,
+        "Triangle": 1.066667
+      }
+    }
+  }
+}
