@@ -7,41 +7,46 @@ import json
 import time
 from jsonpath_ng  import jsonpath, parse
 
-json_opcua_mapping = {}
+jsonOpcuaMapping = {}
 json_result = {}
         
 
 def get_node_path_display_name(node: Node):
     return '/'.join(node.get_display_name().Text for node in node.get_path(200000))
 
-def getOpcuaToJson(node: Node, rep, sub, json_opcua_mapping):
-    json_result = {}
+def getOpcuaToJson(parentNode: Node, prefixPath, opcuaSubscription, jsonOpcuaMapping):
+    resultJSON = {}
 
-    children = node.get_children()
-    
-    for child in children:
-        itemName = child.get_display_name().Text
-        child_class = child.get_node_class()
-        path = get_node_path_display_name(child)
+    for childNode in parentNode.get_children():
+        itemName = childNode.get_display_name().Text
+        childNodeClass = childNode.get_node_class()
+        childPath = get_node_path_display_name(childNode)
+        
+        # if the current crawled path starts with the correct prefix
         if ( 
-                  (len(path) <= len(rep) and rep.startswith(path))
-               or (len(path) > len(rep) and path.startswith(rep))
+                  (len(childPath) <= len(prefixPath) and prefixPath.startswith(childPath))
+               or (len(childPath) > len(prefixPath) and childPath.startswith(prefixPath))
             ):
 
-                json_opcua_mapping[child] = path.replace("/",".")
-                if child_class == ua.NodeClass.Variable:
+                # store in dict node -> jsonpath
+                jsonOpcuaMapping[childNode] = childPath.replace("/",".")
+                
+                # this is a variable : save the value
+                if childNodeClass == ua.NodeClass.Variable:
                     try:
-                        value = child.get_value()
-                        display_name = child.get_display_name().Text 
-                        sub.subscribe_data_change(child)
+                        value = childNode.get_value()
+                        display_name = childNode.get_display_name().Text 
+                        opcuaSubscription.subscribe_data_change(childNode)
                     except:
-                        value = ""
+                        value = ""  
+                    resultJSON[itemName]=value
+                
+                # this is an object : get the content recursively
+                if childNodeClass == ua.NodeClass.Object:
+                    jsonChild = getOpcuaToJson(childNode, prefixPath, opcuaSubscription, jsonOpcuaMapping)
+                    resultJSON[itemName]=jsonChild
                     
-                    json_result[itemName]=value
-                if child_class == ua.NodeClass.Object:
-                    json_child = getOpcuaToJson(child, rep, sub, json_opcua_mapping)
-                    json_result[itemName]=json_child
-    return json_result
+    return resultJSON
 
 class SubHandler(object):
 
@@ -54,7 +59,7 @@ class SubHandler(object):
 
     def datachange_notification(self, node, val, data):
         # print("Python: New data change event", node, val)
-        json_path = "$." + json_opcua_mapping[node]
+        json_path = "$." + jsonOpcuaMapping[node]
         jsonpath_expression = parse(json_path)
         jsonpath_expression.update(json_result, val)
         return
@@ -78,12 +83,12 @@ if __name__ == "__main__":
     try:
         client.connect()
         client.load_type_definitions()  # load definition of server specific structures/extension objects
-        root = client.get_root_node()
+        root    = client.get_root_node()
         handler = SubHandler()
-        sub = client.create_subscription(1000, handler)
+        sub     = client.create_subscription(1000, handler)
         
         # crawl and subscribe
-        json_result = {"Root" : getOpcuaToJson(root,  args.opcua_path, sub, json_opcua_mapping)}
+        json_result = {"Root" : getOpcuaToJson(root,  args.opcua_path, sub, jsonOpcuaMapping)}
         
         # 
         sub.subscribe_events()
@@ -91,11 +96,10 @@ if __name__ == "__main__":
         while True:
             json_formatted_str = json.dumps(json_result, indent=2)
             print(json_formatted_str)
-            args.output
             # Writing to sample.json
             with open(args.output, "w") as outfile:
                 outfile.write(json_formatted_str)
             time.sleep(int(args.opcua_delay_s))
     finally:
             client.disconnect()
-            print(json_opcua_mapping)
+            print(jsonOpcuaMapping)
